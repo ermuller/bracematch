@@ -1,5 +1,5 @@
 # bracematch
-tool for quick-n-dirty minimal validation of formatting of Juniper configurations
+a tool for quick-n-dirty minimal validation of formatting of Juniper configurations
 
 This is a simple tool to verify that opening and closing braces match in Juniper-style configurations.
 Key features are:
