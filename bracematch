@@ -6,17 +6,19 @@ use strict;
 use Getopt::Long qw(:config auto_help auto_version);
 use Pod::Usage;
 
-our $VERSION="1.0.3";
+our $VERSION="1.1.0b1";
 
 my $verbose=0;
 my $indent = '  ';
 my $doindent=1;
 my $orig=0;
+my $setify=0;
 my $fullheaders=0;
 my $doheader=1;
 my %stack=(0,'',-1,'Error');
 my $showdepth=0;
-my $showstack=0;
+my $showpath=0;
+my $quiet=0;
 my $help;
 my $man;
 
@@ -25,9 +27,11 @@ my $results = GetOptions(  "verbose" => \$verbose,
 	    "indent=s" => \$indent,
 	    "header|c" => \$doheader,
 	        "orig" => \$orig,
-	        "full" => \$fullheaders,
+	       "set|s" => \$setify,
+	     "quiet|q" => \$quiet,
 	 "showDepth|d" => \$showdepth,
-	 "showStack|s" => \$showstack,
+	  "showPath|p" => \$showpath,
+	        "full" => \$fullheaders,
               "help|h" => \$help,
                  "man" => \$man
 ) or pod2usage(2);
@@ -60,7 +64,7 @@ while (<>) {
 		if ($depth < 0 ) {
 			$overclose++;
 			#$depth=0;
-			print "Warning: unmatched }\n";
+			print "Warning: unmatched }\n" unless ($quiet);
 		#} else {
 		#	$header=$stack{$depth} unless ($depth == 0);
 		}
@@ -70,23 +74,35 @@ while (<>) {
 			print "Boom!\n";
 		}
 	}
-	if ($showstack) {
+	if ($showpath) {
 		my $path="";
-		for (my $j=0; $j<=($depth); $j++) {
-			$path.=$stack{$j}.":";
-		}
+		$path.=join(":",getStack(%stack)).":";
 		print "$path\n";
 	}
-	if ($verbose) {
+	if ($quiet) {
+		# just count, but don't output normal content
+	}
+	elsif ($verbose) {
 		print "$depth:$header: $_\n";
 	}
 	elsif ($orig) {
 		print "$_\n";
 	}
+	elsif ($setify) {
+		my $noprint=0;
+		$noprint = 1 if (/^\s*#/); # skip comments
+		$noprint = 1 if (/^\s*\/\*.*\*\//); # TODO: preserve annotations
+		$noprint = 1 if (/^\s*}\s*$/); # skip block ends
+		$noprint = 1 if (/ {\s*$/); # skip block openers
+		my $line=$_;
+		$line =~ s/^\s+//;
+		$line =~ s/\;$//;
+		print "set".join(" ",getStack(%stack))." $line\n" unless ($noprint);
+	}
 	elsif ($doindent) {
 		my $line=$_;
 		my $space=(${indent} x $depth);
-		$line=~ s/^\s*/${space}/;
+		$line =~ s/^\s*/${space}/;
 		if ($showdepth) {
 			$line="$depth: ".$line;
 		}
@@ -105,6 +121,15 @@ if ( $overclose != 0 ) {
 	print "Error: $overclose extra closing braces found.\n";
 	exit 1;
 }
+exit 0;
+sub getStack {
+	my $stack = shift;
+	my @path;
+	for (my $j=0; $j<=($depth); $j++) {
+		push (@path,$stack{$j});
+	}
+	return @path;
+}
 
 __END__
 =head1 NAME
@@ -118,9 +143,11 @@ Options:
   --verbose   -v show more detail
   --indent <s>   string to indent with per level.  Default is '  '.
   --orig         Do not reformat/re-indent
-  --full      -f use full rather than shortened headers in stack
+  --set       -s (Experimental) translate to "set" statements
+  --quiet     -q Don't output body, just check format validity
   --showDepth -d indicate the nesting depth of each statement
-  --showStack -s print full config path context for each line
+  --showPath  -p print full config path context for each line
+  --full      -f use full rather than shortened headers in stack
   --help      -h print basic usage
   --version      show version
   --man          print man page
@@ -129,8 +156,48 @@ Options:
 
 B<bracematch> filters stdin for juniper-style configurations, and attempts to
 follow the statement hierarchy, checking for matching braces and cleaning up
-inconsistent indenting for readability.
+inconsistent indenting for readability.  No attempt is made to verify that
+the content is sensible or otherwise valid, but it will help identify various
+forms of obviously-broken syntax.
 
+=head1 OPTIONS
+
+=over
+
+=item B<-s>,B<--set>
+
+Attempts to turn a configuration into a series of set statements.
+Silly things probably happen with comments, annotations are ignored,
+and lists or empty blocks may not be preserved correctly.
+
+=item B<--indent>=I<string>
+
+Specifies a per-level indent string to use.  '  ' is the default for
+compact but readable output; '    ' would better approximate normal
+juniper output.
+
+=item B<--orig>
+
+Preserve original format.  The opposite of --indent
+
+=item B<-q>,B<--quiet>
+
+No output other than errors.
+
+=item B<other options>
+
+Other options are mainly for debugging purposes and their syntax and
+meaning are subject to change.
+
+=back
+
+=head1 RETURN VALUE
+
+Exits with 0 on a clean file, 1 otherwise.
+
+=head1 EXAMPLES
+
+C<cat router.conf | bracematch>
 
 =head1 AUTHOR
 
