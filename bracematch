@@ -7,7 +7,7 @@ use strict;
 use Getopt::Long qw(:config auto_help auto_version);
 use Pod::Usage;
 
-our $VERSION="1.1.0b2";
+our $VERSION="1.1.0b3";
 
 my $verbose=0;
 my $indent = '  ';
@@ -42,6 +42,7 @@ pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 my $depth=0;
 my $header="";
+my $note;
 my $up=0;
 my $overclose=0;
 my $headermatch;
@@ -101,13 +102,35 @@ while (<>) {
 	elsif ($setify) {
 		my $noprint=0;
 		$noprint = 1 if (/^\s*#/); # skip comments
-		$noprint = 1 if (/^\s*\/\*.*\*\//); # TODO: preserve annotations
 		$noprint = 1 if (/^\s*}\s*$/); # skip block ends
 		$noprint = 1 if (/ {\s*$/); # skip block openers
+		# pickup annotation
+		if (/^\s*\/\*\s(.*)\s\*\//) {
+			$note = $1;
+			$noprint = 1;
+		}
 		my $line=$_;
-		$line =~ s/^\s+//;
-		$line =~ s/\;$//;
+		$line =~ s/^\s+//; # trim leading whitespace
+		$line =~ s/\;(?:\s*#.*)?$//; # trim ; and trailing comments
 		print "set".join(" ",getStack(%stack))." $line\n" unless ($noprint);
+		if (defined $note && !$noprint) {
+# TODO - how are annotatable sections defined?
+#eg the following
+#        /* reduce the impact of transport fiber blips */
+#        hold-time up 4000 down 4000;
+# needs 'annotate hold-time "foo bar"'
+#but
+#    /* includes NS hosts */
+#    prefix-list dns-auth {
+# takes the whole item as key
+
+			print "edit".join(" ",getStack(%stack))."\n" unless ($noprint);
+			my $notecontext = $line;
+			$notecontext =~ s/(hold-time)\s.*/\1/;
+			print "annotate $notecontext \"$note\"\n";
+			print "up $depth\n";
+			undef $note;
+		}
 	}
 	elsif ($doindent) {
 		my $line=$_;
@@ -177,8 +200,10 @@ forms of obviously-broken syntax.
 =item B<-s>,B<--set>
 
 Attempts to turn a configuration into a series of set statements.
-Silly things probably happen with comments, annotations are ignored,
-and lists or empty blocks may not be preserved correctly.
+Silly things probably happen with comments, and lists or empty
+blocks may not be preserved correctly.  Single-line annotations are
+preserved if possible, but context may be wrong for annotations on
+items where the whole line is not the config key (eg hold-time).
 
 =item B<--indent>=I<string>
 
@@ -208,6 +233,10 @@ Exits with 0 on a clean file, 1 otherwise.
 =head1 EXAMPLES
 
 C<cat router.conf | bracematch>
+
+=head1 KNOWN ISSUES
+
+Multi-line annotations are not supported.
 
 =head1 AUTHOR
 
