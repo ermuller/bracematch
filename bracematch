@@ -1,19 +1,20 @@
 #!/usr/bin/perl -w
-# quick script to reindent juniper configs, and check for matching braces
+# quick script to reindent juniper configs, check for matching braces,
+# and convert full configs into "set" syntax.
 # https://github.com/ermuller/bracematch
 
 use strict;
 use Getopt::Long qw(:config auto_help auto_version);
 use Pod::Usage;
 
-our $VERSION="1.1.0b1";
+our $VERSION="1.1.0b2";
 
 my $verbose=0;
 my $indent = '  ';
 my $doindent=1;
 my $orig=0;
 my $setify=0;
-my $fullheaders=0;
+my $truncateheaders=0;
 my $doheader=1;
 my %stack=(0,'',-1,'Error');
 my $showdepth=0;
@@ -31,7 +32,7 @@ my $results = GetOptions(  "verbose" => \$verbose,
 	     "quiet|q" => \$quiet,
 	 "showDepth|d" => \$showdepth,
 	  "showPath|p" => \$showpath,
-	        "full" => \$fullheaders,
+	    "truncate" => \$truncateheaders,
               "help|h" => \$help,
                  "man" => \$man
 ) or pod2usage(2);
@@ -45,15 +46,23 @@ my $up=0;
 my $overclose=0;
 my $headermatch;
 if ($orig) {$doindent=0;}
-if ($fullheaders) {
+if (!$truncateheaders) {
+	# grab all the header.
 	$headermatch = qr/\s*((?:.*\s+)*\S+)\s*\{\s*((#|\/\/).*)?$/;
 } else {
+	# "truncated section headers" mode.
+	# Probably only ever want this for debuging template stuff..
+	# use just the last element of an item as a header.
+	# eg, capture "0.0.0.0" instead of "area 0.0.0.0"
+	# effectively incompatible with "set"
+	# TODO: probably just need to nuke this section
 	$headermatch = qr/(?:.*\s+)*(\S+)\s*\{\s*((#|\/\/).*)?$/;
 }
 while (<>) {
 	chomp;
 	$_ =~ s/\s*$// unless ($orig);
-	next if (/^$/);
+	next if ((/^$/) && !($orig));
+	# open or close a block?
 	if ($_ =~ m/$headermatch/) {
 		$header = $1;
 		$stack{$depth+1} = $header;
@@ -74,6 +83,7 @@ while (<>) {
 			print "Boom!\n";
 		}
 	}
+	# now process content and/or output lines
 	if ($showpath) {
 		my $path="";
 		$path.=join(":",getStack(%stack)).":";
@@ -147,7 +157,7 @@ Options:
   --quiet     -q Don't output body, just check format validity
   --showDepth -d indicate the nesting depth of each statement
   --showPath  -p print full config path context for each line
-  --full      -f use full rather than shortened headers in stack
+  --truncate     use truncated rather than full headers in stack
   --help      -h print basic usage
   --version      show version
   --man          print man page
