@@ -7,7 +7,7 @@ use strict;
 use Getopt::Long qw(:config auto_help auto_version);
 use Pod::Usage;
 
-our $VERSION="1.1.0b3";
+our $VERSION="1.1.0b4";
 
 my $verbose=0;
 my $indent = '  ';
@@ -126,7 +126,7 @@ while (<>) {
 
 			print "edit".join(" ",getStack(%stack))."\n" unless ($noprint);
 			my $notecontext = $line;
-			$notecontext =~ s/(hold-time)\s.*/\1/;
+			$notecontext =~ s/(apply-groups(?:-except)?|hold-time)\s.*/$1/;
 			print "annotate $notecontext \"$note\"\n";
 			print "up $depth\n";
 			undef $note;
