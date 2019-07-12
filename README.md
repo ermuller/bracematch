@@ -1,6 +1,6 @@
 # bracematch
 ## Overview
-A tool for quick-n-dirty minimal validation of formatting of Juniper-style configurations, as well as translating config files into "set" statements.  Juniper, PlaoAlto, Vyatta, and other similar nested formats should work.
+A tool for quick-n-dirty minimal validation of formatting of Juniper-style configurations, as well as translating config files into "set" statements.  Juniper, PaloAlto, Vyatta, and other similar nested formats should work.
 
 This is a simple tool to verify that opening and closing braces match in Juniper-style configurations.
 Key features are:
