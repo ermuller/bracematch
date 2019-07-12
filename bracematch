@@ -7,7 +7,7 @@ use strict;
 use Getopt::Long qw(:config auto_help auto_version);
 use Pod::Usage;
 
-our $VERSION="1.1.0b4";
+our $VERSION="1.1.0";
 
 my $verbose=0;
 my $indent = '  ';
@@ -52,7 +52,7 @@ if (!$truncateheaders) {
 	$headermatch = qr/\s*((?:.*\s+)*\S+)\s*\{\s*((#|\/\/).*)?$/;
 } else {
 	# "truncated section headers" mode.
-	# Probably only ever want this for debuging template stuff..
+	# Probably only ever want this for debuging template stuff...
 	# use just the last element of an item as a header.
 	# eg, capture "0.0.0.0" instead of "area 0.0.0.0"
 	# effectively incompatible with "set"
