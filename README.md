@@ -38,6 +38,6 @@ $ cat <<EOF | bracematch -s
 set system host-name myrouter
 ```
 
-Comments via Juniper "annotate" are attemted to be preserved, but this feature
+Comments via Juniper "annotate" are attempted to be preserved, but this feature
 is still considered experimental, as not all contexts can be easily identified.
 
