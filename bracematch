@@ -103,7 +103,7 @@ while (<>) {
 		my $noprint=0;
 		$noprint = 1 if (/^\s*#/); # skip comments
 		$noprint = 1 if (/^\s*}\s*$/); # skip block ends
-		$noprint = 1 if (/ {\s*$/); # skip block openers
+		$noprint = 1 if (/ \{\s*$/); # skip block openers
 		# pickup annotation
 		if (/^\s*\/\*\s(.*)\s\*\//) {
 			$note = $1;
